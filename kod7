@@ -1,0 +1,71 @@
+import telebot
+import datetime
+import random,string
+import psycopg2
+import time
+import sys
+import os
+import tdb
+
+k = {"понедельник"          :"today(message,[datetime.datetime.now().day//7%2,1])",
+"вторник"                   :"today(message,[datetime.datetime.now().day//7%2,2])",
+"среда"                     :"today(message,[datetime.datetime.now().day//7%2,3])",
+"четверг"                   :"today(message,[datetime.datetime.now().day//7%2,4])",
+"пятница"                   :"today(message,[datetime.datetime.now().day//7%2,5])",
+"расписание на неделю"      :"week(message)",
+"расписание на след. неделю":"nextweek(message)",
+"что такое?"                        :"bot.send_message(message.chat.id,''.join([random.choice(string.ascii_letters) for i in range(random.randint(1,10))]))"
+}
+
+path = __file__.replace("main.py","")
+
+def e():raise Exception('sleep')
+def createbutton(message):
+    global markup
+    markup.add(telebot.types.KeyboardButton("".join([random.choice(string.ascii_letters) for i in range(random.randint(1,100))])))
+    bot.send_message(message.chat.id,'снова?',reply_markup=markup)
+
+bot = telebot.TeleBot("5850716536:AAFg427mDfgI-4wRdQaNlX4hDieP7bTg3Mg")
+markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
+markup.add(
+telebot.types.KeyboardButton("Понедельник"               ),
+telebot.types.KeyboardButton("Вторник"                   ),
+telebot.types.KeyboardButton("Среда"                     ),
+telebot.types.KeyboardButton("Четверг"                   ),
+telebot.types.KeyboardButton("Пятница"                   ),
+telebot.types.KeyboardButton("Расписание на неделю"      ),
+telebot.types.KeyboardButton("Расписание на след. неделю")
+)
+@bot.message_handler(commands=['help'])
+def help(message):
+    bot.send_message(message.chat.id,'Команда - start для начала диалога, команды next week, week, today для получения расписаний на неделю, сегодня, mtuci для получения ссылки на сайт',reply_markup=markup)
+@bot.message_handler(commands=['today'])
+def today(message,day = [datetime.datetime.now().day//7%2,datetime.datetime.today().weekday()]):
+    print()
+    dat = eval(f"tdb.w{day[0]}d{day[1]}").out()
+    print(dat)
+    mes = "...\n"+dat[0]+"\n_____________\n"+"\n".join(dat[1])
+    bot.send_message(message.chat.id,mes)
+@bot.message_handler(commands=['mtuci'])
+def mtuci(message):
+    bot.send_message(message.chat.id,'https://mtuci.ru/')
+@bot.message_handler(commands=['week'])
+def week(message):
+    mes = ["\n...\n"+str(eval(f"tdb.w{datetime.datetime.now().day//7%2}d{i}").out()[0])+"\n_____________\n"+"\n".join(eval(f"tdb.w{datetime.datetime.now().day//7%2}d{i}").out()[1]) for i in range(1,7)]
+    mes = "".join(mes)
+    bot.send_message(message.chat.id,mes)
+@bot.message_handler(commands=['nextweek'])
+def nextweek(message):
+    mes = ["\n...\n"+str(eval(f"tdb.w{datetime.datetime.now().day//7%2}d{i}").out()[0])+"\n_____________\n"+"\n".join(eval(f"tdb.w{int(not bool(datetime.datetime.now().day//7%2))}d{i}").out()[1]) for i in range(1,7)]
+    mes = "".join(mes)
+    bot.send_message(message.chat.id,mes)
+    
+
+@bot.message_handler(content_types=['text'])
+def func(message):
+    if message.text.lower() in k.keys():
+        eval(k[message.text.lower()])
+    else:
+        bot.send_message(message.chat.id,"Извинте, но такой команды не существует")
+
+bot.polling(none_stop=True)
